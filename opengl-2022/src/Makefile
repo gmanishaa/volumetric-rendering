@@ -12,7 +12,7 @@
 #  make
 #  ../build/example0
 
-SRC_PREFIX=assignment
+SRC_PREFIX=volumetric-rendering
 
 CC=clang++
 CFLAGS=-Wall -std=c++11 -g -DDEBUG
@@ -33,8 +33,8 @@ target_source := $(wildcard $(SRC)/$@.cpp $(SRC)/$@.c $(SRC)/$@.C)
 
 all: $(programs)
 
-$(SRC_PREFIX)%:	$(wildcard $(SRC)/$@.cpp $(SRC)/$@.c $(SRC)/$@.C) $(sources) $(wildcard $(SRC)/*.hpp $(SRC)/*.h $(SRC)/*.H)
-	$(CC) $(CFLAGS) $(INCLUDES) $(LIBDIRS) $(LIBS) $(FRAMEWORKS) $(wildcard $(SRC)/$@.cpp $(SRC)/$@.c $(SRC)/$@.C) $(sources) -o $(OUT)/$@
+$(programs): %: $(SRC)/%.cpp $(sources) $(wildcard $(SRC)/*.hpp $(SRC)/*.h $(SRC)/*.H)
+	$(CC) $(CFLAGS) $(INCLUDES) $(LIBDIRS) $(LIBS) $(FRAMEWORKS) $< $(sources) -o $(OUT)/$@
 
 clean:
 	rm -f $(addprefix $(OUT)/,$(programs))

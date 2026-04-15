@@ -27,7 +27,7 @@ void
 init()
 {
    // Load shaders and use the resulting shader program
-   GLuint program = InitShader( "vshaderA1.glsl", "fshaderA1.glsl" );
+   GLuint program = InitShader( "vshader.glsl", "fshader.glsl" );
    glUseProgram( program );
 
    glEnable( GL_DEPTH_TEST );
