@@ -14,7 +14,7 @@
 //---------------------------------------------------------------------------
 // global constants
 
-const char *WINDOW_TITLE = "Assignment 1";
+const char *WINDOW_TITLE = "Volumetric Rendering";
 const double FRAME_RATE_MS = 1000.0/60.0;
 
 //---------------------------------------------------------------------------
@@ -34,8 +34,6 @@ init()
    glClearColor( 0.0, 0.0, 0.0, 1.0 );
    // glClearColor( 1.0, 1.0, 1.0, 1.0 );
 
-   // Create a single empty vertex array object
-   // The vertex shader will natively generate the geometry
    glGenVertexArrays( 1, &VAO );
    glBindVertexArray( VAO );
 }
