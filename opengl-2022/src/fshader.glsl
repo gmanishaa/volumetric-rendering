@@ -2,12 +2,14 @@
 
 in vec2 v_uv;
 
+uniform float animationIndex;
+uniform int maxOctaves;
+
 out vec4 fColor;
 
 const int MAX_STEPS = 100;
 const float STEP_SIZE = 0.05;
 const vec3 CAMERA = vec3(0.0, 0.0, -3.0);
-const int NUM_OCTAVES = 4;
 
 //	Simplex 3D Noise 
 //	by Ian McEwan, Stefan Gustavson (https://github.com/stegu/webgl-noise)
@@ -84,30 +86,30 @@ float snoise(vec3 v) {
   return 42.0 * dot(m * m, vec4(dot(p0, x0), dot(p1, x1), dot(p2, x2), dot(p3, x3)));
 }
 
-float octaves(in vec3 p) {
-  float fbm = 0.0;
-  float amplitude = 0.75;
-  float freq = 2.0;
-  for(int i = 0; i < NUM_OCTAVES; i++) {
-    fbm += amplitude + snoise(p * freq);
-    freq *= 2.0;
-    amplitude *= 0.5;
-  }
-  return fbm;
-}
-
 // float octaves(in vec3 p) {
 //   float fbm = 0.0;
-//   float amplitude = 0.5;
+//   float amplitude = 0.75;
 //   float freq = 2.0;
-//   for(int i = 0; i < NUM_OCTAVES; i++) {
-//     fbm += amplitude + snoise(p);
-//     p *= freq;
-//     freq += 0.21;
+//   for(int i = 0; i < maxOctaves; i++) {
+//     fbm += amplitude + snoise(p * freq);
+//     freq *= 2.0;
 //     amplitude *= 0.5;
 //   }
 //   return fbm;
 // }
+
+float octaves(in vec3 p) {
+  float fbm = 0.0;
+  float amplitude = 0.5;
+  float freq = 2.0;
+  for(int i = 0; i < maxOctaves; i++) {
+    fbm += amplitude + snoise(p);
+    p *= freq;
+    freq += 0.21;
+    amplitude *= 0.5;
+  }
+  return fbm;
+}
 
 float sdfSphere(in vec3 p, in float r) {
   float dist = length(p) - r;
@@ -128,7 +130,8 @@ void march(in vec3 e, in vec3 s, out vec3 colour) {
 
     // density bigger than 0 (inside sphere)
     if(d > 0) {
-      float density = clamp(d, 0, 1) * octaves(p);
+      vec3 wind = vec3(0.4, 0.2, 0.0);
+      float density = clamp(d, 0, 1) * octaves(p + animationIndex * wind);
 
       float absorption = density * STEP_SIZE;
 
