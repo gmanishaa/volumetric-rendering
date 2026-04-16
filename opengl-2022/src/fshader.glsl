@@ -274,8 +274,7 @@ void march(in vec3 e, in vec3 s, out vec3 colour) {
         transmittanceLight *= exp(-densityLight * extinctionCoeff * STEP_SIZE_LIGHT * 1.5);
 
         // early exist
-        if(transmittanceLight < 0.05)
-          break;
+        if(transmittanceLight < 0.05) break;
 
         tLight += STEP_SIZE_LIGHT;
       }
@@ -290,16 +289,13 @@ void march(in vec3 e, in vec3 s, out vec3 colour) {
       transmittance *= exp(-extinctionCoeff * density * STEP_SIZE * 1.5);
 
       // early exit
-      if(transmittance < 0.01)
-        break;
+      if(transmittance < 0.01) break;
     }
 
     t += STEP_SIZE;
 
     // early exit
-    if(t > 20.0) {
-      break;
-    }
+    if(t > 20.0) break;
   }
   colour += transmittance * sky;
 }
