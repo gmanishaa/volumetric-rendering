@@ -12,7 +12,7 @@ out vec4 fColor;
 const int MAX_STEPS = 50;
 const float STEP_SIZE = 0.08;
 const vec3 CAMERA = vec3(0.0, 0.0, -3.0);
-const vec3 SUN = normalize(vec3(1.3, 1.0, 1.0)); // Top-right, far in the distance
+const vec3 SUN = normalize(vec3(1.5, 1.0, 1.0)); 
 const int MAX_STEPS_LIGHT = 5;
 const float STEP_SIZE_LIGHT = 0.6;
 const vec3 WIND = vec3(0.7, 0.2, -0.5);
@@ -209,21 +209,14 @@ float henyeyGreenstien(in float cosTheta) {
 
   return mix(forward, backward, 0.4) * 0.4;
 }
-// float henyeyGreenstien(in float cosTheta) {
-//   // g is usually between 0.7 and 0.9
-//   float g = 0.7;
-//   float pi = 3.14159265359;
-//   float denominator = pow(1.0 + g * g - 2 * g * cosTheta, 1.5);
-//   return ((1.0 - g * g) / denominator);
-// }
 
 vec3 calculateSkyColour(in vec3 rayDir) {
   float screenRange = clamp(rayDir.y * 0.5 + 0.5, 0.0, 1.0);
   vec3 skyTop, skyBottom;
 
   if ( sunset ) {
-    skyTop = vec3(0.05, 0.15, 0.35);
-    skyBottom = vec3(0.35, 0.20, 0.35);
+    skyTop = vec3(0.15, 0.30, 0.60);
+    skyBottom = vec3(0.85, 0.45, 0.30);
   } else {
     skyTop = vec3(0.2, 0.4, 0.8);
     skyBottom = vec3(0.7, 0.85, 1.0);
@@ -289,7 +282,7 @@ void march(in vec3 e, in vec3 s, out vec3 colour) {
 
       float phase = henyeyGreenstien(dot(rayDir, SUN));
 
-      vec3 ambient = sky * 0.7; // Shadows take on the cool-toned sky color
+      vec3 ambient = sky * 0.7;
       vec3 scattered = (sunColour * transmittanceLight * phase * 6.0) + ambient;
 
       colour += transmittance * scatteringCoeff * density * scattered * STEP_SIZE;
