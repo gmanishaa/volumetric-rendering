@@ -14,9 +14,8 @@ const vec3 CAMERA = vec3(0.0, 0.0, -3.0);
 const vec3 SUN = normalize(vec3(1.0, 1.0, -1.0));
 const int MAX_STEPS_LIGHT = 5;
 const float STEP_SIZE_LIGHT = 0.6;
-const vec3 WIND = vec3(0.7, 0.2, 0.5);
+const vec3 WIND = vec3(0.7, 0.2, -0.5);
 const vec3 SUN_COLOUR = vec3(1.5, 1.3, 0.9);
-const vec3 SKY_COLOUR = vec3(0.06, 0.27, 0.6);
 
 const float scatteringCoeff = 0.9;  // most light scatters
 const float absorptionCoeff = 0.05;  // very little is absorbed
@@ -201,20 +200,36 @@ float henyeyGreenstien(in float cosTheta) {
   return (1.0 / (4.0 * pi)) * ((1.0 - g * g) / denominator);
 }
 
+vec3 calculateSkyColour(in vec3 rayDir) {
+  float screenRange = clamp(rayDir.y * 0.5 + 0.5, 0.0, 1.0);
+  vec3 skyTop = vec3(0.2, 0.4, 0.8);
+  vec3 skyBottom = vec3(0.7, 0.85, 1.0);
+  return mix(skyBottom, skyTop, screenRange);
+}
+
 void march(in vec3 e, in vec3 s, out vec3 colour) {
+  vec3 rayDir = normalize(s - e);
+
+  vec3 sky = calculateSkyColour(rayDir);
+
   colour = vec3(0.0);
   float transmittance = 1.0;
-
-  vec3 rayDir = normalize(s - e);
   float t = 0.0;
-
   for(int i = 0; i < MAX_STEPS; i++) {
     vec3 p = e + t * rayDir;
 
-    float d = sdfSphere(p, 2.0);
+    float dist = sdfSphere(p, 2.0);
 
     // density bigger than 0 (inside sphere)
-    if(d > 0) {
+    if(dist > 0) {
+      float density = clamp(octaves(p + animationIndex * WIND), 0.0, 1.0);
+      density *= smoothstep(0.0, 1.0, dist);   
+
+      // early exit if density very low
+      if(density < 0.01) {
+        t += STEP_SIZE;
+        continue;
+      }
 
       float transmittanceLight = 1.0;
       float tLight = 0.0;
@@ -224,48 +239,35 @@ void march(in vec3 e, in vec3 s, out vec3 colour) {
 
         float densityLight = clamp(octaves(pLight + animationIndex * WIND), 0, 1);
 
-        transmittanceLight *= exp(-densityLight * extinctionCoeff * STEP_SIZE_LIGHT);
+        transmittanceLight *= exp(-densityLight * extinctionCoeff * STEP_SIZE_LIGHT * 1.5);
 
+        // early exist
         if(transmittanceLight < 0.05)
           break;
 
         tLight += STEP_SIZE_LIGHT;
       }
 
-      float density = clamp(octaves(p + animationIndex * WIND), 0.0, 1.0);
-      density *= smoothstep(0.0, 1.0, d);   
-      density *= 1.5;
-      // phase func using henyey
-      // float cosTheta = dot(rayDir, SUN);
-      // float phase = henyeyGreenstien(cosTheta);
-      float phase = 1.0;
+      vec3 ambient = sky * 0.7;
+      vec3 scattered = SUN_COLOUR * transmittanceLight + ambient;
 
-      colour += transmittance * scatteringCoeff * density * transmittanceLight * phase * SUN_COLOUR * STEP_SIZE;
+      colour += transmittance * scatteringCoeff * density * scattered * STEP_SIZE;
 
-      // float extinction = density * 1.0;
-      // float scattering = density * 1.0;
+      transmittance *= exp(-extinctionCoeff * density * STEP_SIZE * 1.5);
 
-      // float scattered += transmittance * scattering * transmittanceLight * STEP_SIZE;
-
-      // float absorption = density * STEP_SIZE;
-
-      // colour += transmittance * absorption * vec3(1.0);
-
-      // transmittance *= exp(-absorption);
-
-      transmittance *= exp(-extinctionCoeff * density * STEP_SIZE);
-
+      // early exit
       if(transmittance < 0.01)
         break;
     }
 
     t += STEP_SIZE;
 
+    // early exit
     if(t > 20.0) {
       break;
     }
   }
-  colour += transmittance * SKY_COLOUR;
+  colour += transmittance * sky;
 }
 
 void main() {

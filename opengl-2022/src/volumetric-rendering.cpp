@@ -20,8 +20,8 @@ const double FRAME_RATE_MS = 1000.0 / 60.0;
 //---------------------------------------------------------------------------
 // globals
 float animationIndexCount = 0.0;
-int octaveLevel = 4;
-bool usePerlinNoise = true;
+int octaveLevel = 3;
+bool usePerlinNoise = false;
 GLuint VAO;
 
 // shader uniform locations
@@ -38,11 +38,13 @@ void init()
 
    animationIndex = glGetUniformLocation(program, "animationIndex");
    maxOctaves = glGetUniformLocation(program, "maxOctaves");
-   perlinNoise = glGetUniformLocation(program, "perlinNoise"); 
+   perlinNoise = glGetUniformLocation(program, "perlinNoise");
+
+   glUniform1i(maxOctaves, octaveLevel);
+   glUniform1i(perlinNoise, usePerlinNoise);
 
    glEnable(GL_DEPTH_TEST);
    glClearColor(0.0, 0.0, 0.0, 1.0);
-   // glClearColor( 1.0, 1.0, 1.0, 1.0 );
 
    glGenVertexArrays(1, &VAO);
    glBindVertexArray(VAO);
@@ -76,26 +78,33 @@ void keyboard(unsigned char key, int x, int y)
       break;
    case '1':
       octaveLevel = 1;
+      glUniform1i(maxOctaves, octaveLevel);
       break;
    case '2':
       octaveLevel = 2;
+      glUniform1i(maxOctaves, octaveLevel);
       break;
    case '3':
       octaveLevel = 3;
+      glUniform1i(maxOctaves, octaveLevel);
       break;
    case '4':
       octaveLevel = 4;
+      glUniform1i(maxOctaves, octaveLevel);
       break;
    case '5':
       octaveLevel = 5;
+      glUniform1i(maxOctaves, octaveLevel);
       break;
    case 'w':
    case 'W':
       usePerlinNoise = true;
+      glUniform1i(perlinNoise, usePerlinNoise);
       break;
    case 'e':
    case 'E':
       usePerlinNoise = false;
+      glUniform1i(perlinNoise, usePerlinNoise);
       break;
    }
 }
@@ -113,8 +122,6 @@ void update(void)
    animationIndexCount = animationIndexCount + 0.01;
 
    glUniform1f(animationIndex, animationIndexCount);
-   glUniform1i(maxOctaves, octaveLevel);
-   glUniform1i(perlinNoise, usePerlinNoise);
 }
 
 //----------------------------------------------------------------------------
