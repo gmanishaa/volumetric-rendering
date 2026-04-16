@@ -20,7 +20,7 @@ const double FRAME_RATE_MS = 1000.0 / 60.0;
 //---------------------------------------------------------------------------
 // globals
 float animationIndexCount = 0.0;
-int octaveLevel = 5;
+int octaveLevel = 4;
 bool usePerlinNoise = true;
 GLuint VAO;
 
@@ -88,15 +88,6 @@ void keyboard(unsigned char key, int x, int y)
       break;
    case '5':
       octaveLevel = 5;
-      break;
-   case '6':
-      octaveLevel = 6;
-      break;
-   case '7':
-      octaveLevel = 7;
-      break;
-   case '8':
-      octaveLevel = 8;
       break;
    case 'w':
    case 'W':
