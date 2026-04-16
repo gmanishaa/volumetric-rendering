@@ -15,8 +15,8 @@ const vec3 SUN = normalize(vec3(1.0, 1.0, -1.0));
 const int MAX_STEPS_LIGHT = 5;
 const float STEP_SIZE_LIGHT = 0.6;
 const vec3 WIND = vec3(0.7, 0.2, 0.5);
-const vec3 SUN_COLOUR = vec3(1.5, 1.3, 0.9); 
-const vec3 SKY_COLOUR = vec3(1.5, 1.3, 0.9); 
+const vec3 SUN_COLOUR = vec3(1.5, 1.3, 0.9);
+const vec3 SKY_COLOUR = vec3(0.06, 0.27, 0.6);
 
 const float scatteringCoeff = 0.9;  // most light scatters
 const float absorptionCoeff = 0.05;  // very little is absorbed
@@ -100,9 +100,11 @@ float snoise(vec3 v) {
 //	Classic Perlin 3D Noise 
 //	by Stefan Gustavson (https://github.com/stegu/webgl-noise)
 //  Used under MIT license
-vec3 fade(vec3 t) {return t*t*t*(t*(t*6.0-15.0)+10.0);}
+vec3 fade(vec3 t) {
+  return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
+}
 
-float cnoise(vec3 P){
+float cnoise(vec3 P) {
   vec3 Pi0 = floor(P); // Integer part for indexing
   vec3 Pi1 = Pi0 + vec3(1.0); // Integer part + 1
   Pi0 = mod(Pi0, 289.0);
@@ -134,14 +136,14 @@ float cnoise(vec3 P){
   gx1 -= sz1 * (step(0.0, gx1) - 0.5);
   gy1 -= sz1 * (step(0.0, gy1) - 0.5);
 
-  vec3 g000 = vec3(gx0.x,gy0.x,gz0.x);
-  vec3 g100 = vec3(gx0.y,gy0.y,gz0.y);
-  vec3 g010 = vec3(gx0.z,gy0.z,gz0.z);
-  vec3 g110 = vec3(gx0.w,gy0.w,gz0.w);
-  vec3 g001 = vec3(gx1.x,gy1.x,gz1.x);
-  vec3 g101 = vec3(gx1.y,gy1.y,gz1.y);
-  vec3 g011 = vec3(gx1.z,gy1.z,gz1.z);
-  vec3 g111 = vec3(gx1.w,gy1.w,gz1.w);
+  vec3 g000 = vec3(gx0.x, gy0.x, gz0.x);
+  vec3 g100 = vec3(gx0.y, gy0.y, gz0.y);
+  vec3 g010 = vec3(gx0.z, gy0.z, gz0.z);
+  vec3 g110 = vec3(gx0.w, gy0.w, gz0.w);
+  vec3 g001 = vec3(gx1.x, gy1.x, gz1.x);
+  vec3 g101 = vec3(gx1.y, gy1.y, gz1.y);
+  vec3 g011 = vec3(gx1.z, gy1.z, gz1.z);
+  vec3 g111 = vec3(gx1.w, gy1.w, gz1.w);
 
   vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));
   g000 *= norm0.x;
@@ -166,7 +168,7 @@ float cnoise(vec3 P){
   vec3 fade_xyz = fade(Pf0);
   vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);
   vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);
-  float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x); 
+  float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x);
   return 2.2 * n_xyz;
 }
 
@@ -175,12 +177,12 @@ float octaves(in vec3 p) {
   float amp = 0.5;
   float freq = 2.0;
 
-  for (int i = 0; i < maxOctaves; i++) {
-      float noise = perlinNoise ? cnoise(p) : snoise(p); 
-      f += amp * noise;
-      p *= freq;
-      freq += 0.20;
-      amp *= 0.5;
+  for(int i = 0; i < maxOctaves; i++) {
+    float noise = perlinNoise ? cnoise(p) : snoise(p);
+    f += amp * noise;
+    p *= freq;
+    freq += 0.20;
+    amp *= 0.5;
   }
 
   return f;
@@ -191,7 +193,7 @@ float sdfSphere(in vec3 p, in float r) {
   return -dist;
 }
 
-float henyeyGreenstien(in float cosTheta){
+float henyeyGreenstien(in float cosTheta) {
   // g is usually between 0.7 and 0.9
   float g = 0.7;
   float pi = 3.14159265359;
@@ -216,37 +218,33 @@ void march(in vec3 e, in vec3 s, out vec3 colour) {
 
       float transmittanceLight = 1.0;
       float tLight = 0.0;
-      if ( i % 2 == 0) {
-        
-        for (int j = 0; j < MAX_STEPS_LIGHT; j++) {
-          vec3 pLight = p + tLight * SUN;
 
-          float densityLight = clamp(octaves(pLight + animationIndex * WIND), 0, 1);
+      for(int j = 0; j < MAX_STEPS_LIGHT; j++) {
+        vec3 pLight = p + tLight * SUN;
 
-          transmittanceLight *= exp(-densityLight * extinctionCoeff * STEP_SIZE_LIGHT);
+        float densityLight = clamp(octaves(pLight + animationIndex * WIND), 0, 1);
 
-          if(transmittanceLight < 0.01) break;
+        transmittanceLight *= exp(-densityLight * extinctionCoeff * STEP_SIZE_LIGHT);
 
-          tLight += STEP_SIZE_LIGHT;
-        }
+        if(transmittanceLight < 0.05)
+          break;
+
+        tLight += STEP_SIZE_LIGHT;
       }
 
-      float density = clamp(octaves(p + animationIndex * WIND), 0.0, 1.0) 
-              * clamp(d / 2.0, 0.0, 1.0);
+      float density = clamp(octaves(p + animationIndex * WIND), 0.0, 1.0);
+      density *= smoothstep(0.0, 1.0, d);   
+      density *= 1.5;
       // phase func using henyey
-      float cosTheta = dot(rayDir, SUN);
-      float phase = henyeyGreenstien(cosTheta);
+      // float cosTheta = dot(rayDir, SUN);
+      // float phase = henyeyGreenstien(cosTheta);
+      float phase = 1.0;
 
-      if ( i % 2 == 0) {
-        colour += transmittance * scatteringCoeff * density * transmittanceLight * phase * SUN_COLOUR * STEP_SIZE;
-      } else {
-        colour += transmittance * density * STEP_SIZE;
-      }
-      
-      
+      colour += transmittance * scatteringCoeff * density * transmittanceLight * phase * SUN_COLOUR * STEP_SIZE;
+
       // float extinction = density * 1.0;
       // float scattering = density * 1.0;
-      
+
       // float scattered += transmittance * scattering * transmittanceLight * STEP_SIZE;
 
       // float absorption = density * STEP_SIZE;
@@ -257,7 +255,8 @@ void march(in vec3 e, in vec3 s, out vec3 colour) {
 
       transmittance *= exp(-extinctionCoeff * density * STEP_SIZE);
 
-      if(transmittance < 0.01) break;
+      if(transmittance < 0.01)
+        break;
     }
 
     t += STEP_SIZE;
