@@ -22,12 +22,14 @@ const double FRAME_RATE_MS = 1000.0 / 60.0;
 float animationIndexCount = 0.0;
 int octaveLevel = 3;
 bool usePerlinNoise = false;
+bool isSunset = false;
 GLuint VAO;
 
 // shader uniform locations
 GLuint animationIndex;
 GLuint maxOctaves;
 GLuint perlinNoise;
+GLuint sunset;
 
 // OpenGL initialization
 void init()
@@ -39,9 +41,11 @@ void init()
    animationIndex = glGetUniformLocation(program, "animationIndex");
    maxOctaves = glGetUniformLocation(program, "maxOctaves");
    perlinNoise = glGetUniformLocation(program, "perlinNoise");
+   sunset = glGetUniformLocation(program, "sunset");
 
    glUniform1i(maxOctaves, octaveLevel);
    glUniform1i(perlinNoise, usePerlinNoise);
+   glUniform1i(sunset, isSunset);
 
    glEnable(GL_DEPTH_TEST);
    glClearColor(0.0, 0.0, 0.0, 1.0);
@@ -105,6 +109,16 @@ void keyboard(unsigned char key, int x, int y)
    case 'E':
       usePerlinNoise = false;
       glUniform1i(perlinNoise, usePerlinNoise);
+      break;
+   case 'a':
+   case 'A':
+      isSunset = false;
+      glUniform1i(sunset, isSunset);
+      break;
+   case 's':
+   case 'S':
+      isSunset = true;
+      glUniform1i(sunset, isSunset);
       break;
    }
 }

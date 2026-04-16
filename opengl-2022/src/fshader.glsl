@@ -5,21 +5,25 @@ in vec2 v_uv;
 uniform float animationIndex;
 uniform int maxOctaves;
 uniform bool perlinNoise;
+uniform bool sunset;
 
 out vec4 fColor;
 
 const int MAX_STEPS = 50;
 const float STEP_SIZE = 0.08;
 const vec3 CAMERA = vec3(0.0, 0.0, -3.0);
-const vec3 SUN = normalize(vec3(1.0, 1.0, -1.0));
+const vec3 SUN = normalize(vec3(1.3, 1.0, 1.0)); // Top-right, far in the distance
 const int MAX_STEPS_LIGHT = 5;
 const float STEP_SIZE_LIGHT = 0.6;
 const vec3 WIND = vec3(0.7, 0.2, -0.5);
-const vec3 SUN_COLOUR = vec3(1.5, 1.3, 0.9);
+const vec3 SUN_COLOUR_SUNSET = vec3(1.8, 1.1, 0.6); 
+const vec3 SUN_COLOUR_DAY = vec3(1.5, 1.3, 0.9);
 
-const float scatteringCoeff = 0.9;  // most light scatters
-const float absorptionCoeff = 0.05;  // very little is absorbed
-const float extinctionCoeff = scatteringCoeff + absorptionCoeff; 
+
+float scatteringCoeff = 1.5;  // most light scatters
+float absorptionCoeff = 0.4;  // very little is absorbed
+float extinctionCoeff = scatteringCoeff + absorptionCoeff; 
+vec3 sunColour = SUN_COLOUR_DAY;
 
 //	Simplex 3D Noise 
 //	by Ian McEwan, Stefan Gustavson (https://github.com/stegu/webgl-noise)
@@ -193,24 +197,59 @@ float sdfSphere(in vec3 p, in float r) {
 }
 
 float henyeyGreenstien(in float cosTheta) {
-  // g is usually between 0.7 and 0.9
-  float g = 0.7;
-  float pi = 3.14159265359;
-  float denominator = pow(1.0 + g * g - 2 * g * cosTheta, 1.5);
-  return (1.0 / (4.0 * pi)) * ((1.0 - g * g) / denominator);
+  // forward scattering
+  float g1 = 0.7;
+  float denom1 = 1.0 + g1 * g1 - 2.0 * g1 * cosTheta;
+  float forward = (1.0 - g1 * g1) / pow(denom1, 1.5);
+  
+  // backward scattering
+  float g2 = -0.2;
+  float denom2 = 1.0 + g2 * g2 - 2.0 * g2 * cosTheta;
+  float backward = (1.0 - g2 * g2) / pow(denom2, 1.5);
+
+  return mix(forward, backward, 0.4) * 0.4;
 }
+// float henyeyGreenstien(in float cosTheta) {
+//   // g is usually between 0.7 and 0.9
+//   float g = 0.7;
+//   float pi = 3.14159265359;
+//   float denominator = pow(1.0 + g * g - 2 * g * cosTheta, 1.5);
+//   return ((1.0 - g * g) / denominator);
+// }
 
 vec3 calculateSkyColour(in vec3 rayDir) {
   float screenRange = clamp(rayDir.y * 0.5 + 0.5, 0.0, 1.0);
-  vec3 skyTop = vec3(0.2, 0.4, 0.8);
-  vec3 skyBottom = vec3(0.7, 0.85, 1.0);
+  vec3 skyTop, skyBottom;
+
+  if ( sunset ) {
+    skyTop = vec3(0.05, 0.15, 0.35);
+    skyBottom = vec3(0.35, 0.20, 0.35);
+  } else {
+    skyTop = vec3(0.2, 0.4, 0.8);
+    skyBottom = vec3(0.7, 0.85, 1.0);
+  }
+
   return mix(skyBottom, skyTop, screenRange);
+}
+
+void setSceneVariables() {
+  if ( sunset ) {
+    scatteringCoeff = 1.5;
+    absorptionCoeff = 0.4;
+    sunColour = SUN_COLOUR_SUNSET;
+  } else {
+    scatteringCoeff = 1.2;
+    absorptionCoeff = 0.2;
+    sunColour = SUN_COLOUR_DAY;
+  }
+  extinctionCoeff = scatteringCoeff + absorptionCoeff; 
 }
 
 void march(in vec3 e, in vec3 s, out vec3 colour) {
   vec3 rayDir = normalize(s - e);
 
   vec3 sky = calculateSkyColour(rayDir);
+  setSceneVariables();
 
   colour = vec3(0.0);
   float transmittance = 1.0;
@@ -248,8 +287,10 @@ void march(in vec3 e, in vec3 s, out vec3 colour) {
         tLight += STEP_SIZE_LIGHT;
       }
 
-      vec3 ambient = sky * 0.7;
-      vec3 scattered = SUN_COLOUR * transmittanceLight + ambient;
+      float phase = henyeyGreenstien(dot(rayDir, SUN));
+
+      vec3 ambient = sky * 0.7; // Shadows take on the cool-toned sky color
+      vec3 scattered = (sunColour * transmittanceLight * phase * 6.0) + ambient;
 
       colour += transmittance * scatteringCoeff * density * scattered * STEP_SIZE;
 
