@@ -21,11 +21,13 @@ const double FRAME_RATE_MS = 1000.0 / 60.0;
 // globals
 float animationIndexCount = 0.0;
 int octaveLevel = 5;
+bool usePerlinNoise = true;
 GLuint VAO;
 
 // shader uniform locations
 GLuint animationIndex;
 GLuint maxOctaves;
+GLuint perlinNoise;
 
 // OpenGL initialization
 void init()
@@ -36,6 +38,7 @@ void init()
 
    animationIndex = glGetUniformLocation(program, "animationIndex");
    maxOctaves = glGetUniformLocation(program, "maxOctaves");
+   perlinNoise = glGetUniformLocation(program, "perlinNoise"); 
 
    glEnable(GL_DEPTH_TEST);
    glClearColor(0.0, 0.0, 0.0, 1.0);
@@ -95,6 +98,14 @@ void keyboard(unsigned char key, int x, int y)
    case '8':
       octaveLevel = 8;
       break;
+   case 'w':
+   case 'W':
+      usePerlinNoise = true;
+      break;
+   case 'e':
+   case 'E':
+      usePerlinNoise = false;
+      break;
    }
 }
 
@@ -112,6 +123,7 @@ void update(void)
 
    glUniform1f(animationIndex, animationIndexCount);
    glUniform1i(maxOctaves, octaveLevel);
+   glUniform1i(perlinNoise, usePerlinNoise);
 }
 
 //----------------------------------------------------------------------------
