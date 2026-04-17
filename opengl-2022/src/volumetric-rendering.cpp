@@ -34,7 +34,7 @@ GLuint sunset;
 // OpenGL initialization
 void init()
 {
-   // Load shaders and use the resulting shader program
+   // load shaders and program
    GLuint program = InitShader("vshader.glsl", "fshader.glsl");
    glUseProgram(program);
 
@@ -43,6 +43,7 @@ void init()
    perlinNoise = glGetUniformLocation(program, "perlinNoise");
    sunset = glGetUniformLocation(program, "sunset");
 
+   // inital values 
    glUniform1i(maxOctaves, octaveLevel);
    glUniform1i(perlinNoise, usePerlinNoise);
    glUniform1i(sunset, isSunset);
@@ -132,9 +133,9 @@ void mouse(int button, int state, int x, int y)
 //----------------------------------------------------------------------------
 
 void update(void)
-{
+{  
+   // animation index
    animationIndexCount = animationIndexCount + 0.01;
-
    glUniform1f(animationIndex, animationIndexCount);
 }
 

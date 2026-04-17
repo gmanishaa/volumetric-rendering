@@ -2,6 +2,7 @@
 
 in vec2 v_uv;
 
+// uniforms
 uniform float animationIndex;
 uniform int maxOctaves;
 uniform bool perlinNoise;
@@ -9,21 +10,25 @@ uniform bool sunset;
 
 out vec4 fColor;
 
+// constants 
 const int MAX_STEPS = 50;
 const float STEP_SIZE = 0.08;
-const vec3 CAMERA = vec3(0.0, 0.0, -3.0);
-const vec3 SUN = normalize(vec3(1.5, 1.0, 1.0)); 
 const int MAX_STEPS_LIGHT = 5;
 const float STEP_SIZE_LIGHT = 0.6;
+
+const vec3 CAMERA = vec3(0.0, 0.0, -3.0);
 const vec3 WIND = vec3(0.7, 0.2, -0.5);
+
 const vec3 SUN_COLOUR_SUNSET = vec3(1.8, 1.1, 0.6); 
 const vec3 SUN_COLOUR_DAY = vec3(1.5, 1.3, 0.9);
+const vec3 SUN = normalize(vec3(1.5, 1.0, 1.0)); 
 
-
-float scatteringCoeff = 1.5;  // most light scatters
-float absorptionCoeff = 0.4;  // very little is absorbed
+// globals 
+float scatteringCoeff = 1.5;
+float absorptionCoeff = 0.4;
 float extinctionCoeff = scatteringCoeff + absorptionCoeff; 
 vec3 sunColour = SUN_COLOUR_DAY;
+
 
 //	Simplex 3D Noise 
 //	by Ian McEwan, Stefan Gustavson (https://github.com/stegu/webgl-noise)
@@ -175,6 +180,8 @@ float cnoise(vec3 P) {
   return 2.2 * n_xyz;
 }
 
+
+// fractal brownian motion
 float octaves(in vec3 p) {
   float f = 0.0;
   float amp = 0.5;
@@ -183,7 +190,7 @@ float octaves(in vec3 p) {
   for(int i = 0; i < maxOctaves; i++) {
     float noise = perlinNoise ? cnoise(p) : snoise(p);
     f += amp * noise;
-    p *= freq;
+    p *= freq; // add gap between frequencies (lacunarity)
     freq += 0.20;
     amp *= 0.5;
   }
@@ -191,6 +198,8 @@ float octaves(in vec3 p) {
   return f;
 }
 
+// signed distance function for sphere 
+// returns point inside sphere
 float sdfSphere(in vec3 p, in float r) {
   float dist = length(p) - r;
   return -dist;
@@ -210,10 +219,12 @@ float henyeyGreenstien(in float cosTheta) {
   return mix(forward, backward, 0.4) * 0.4;
 }
 
+// calculates a gradient sky colour
 vec3 calculateSkyColour(in vec3 rayDir) {
   float screenRange = clamp(rayDir.y * 0.5 + 0.5, 0.0, 1.0);
   vec3 skyTop, skyBottom;
 
+  // calculate the correct gradient sky for scene
   if ( sunset ) {
     skyTop = vec3(0.15, 0.30, 0.60);
     skyBottom = vec3(0.85, 0.45, 0.30);
@@ -225,6 +236,7 @@ vec3 calculateSkyColour(in vec3 rayDir) {
   return mix(skyBottom, skyTop, screenRange);
 }
 
+// sets correct globals
 void setSceneVariables() {
   if ( sunset ) {
     scatteringCoeff = 1.5;
@@ -242,17 +254,18 @@ void march(in vec3 e, in vec3 s, out vec3 colour) {
   vec3 rayDir = normalize(s - e);
 
   vec3 sky = calculateSkyColour(rayDir);
+  colour = vec3(0.0);
   setSceneVariables();
 
-  colour = vec3(0.0);
+  // outer loop, ray from viewer to position
   float transmittance = 1.0;
   float t = 0.0;
   for(int i = 0; i < MAX_STEPS; i++) {
-    vec3 p = e + t * rayDir;
+    vec3 p = e + t * rayDir; // current position
 
     float dist = sdfSphere(p, 2.0);
 
-    // density bigger than 0 (inside sphere)
+    // distance bigger than 0 (inside sphere)
     if(dist > 0) {
       float density = clamp(octaves(p + animationIndex * WIND), 0.0, 1.0);
       density *= smoothstep(0.0, 1.0, dist);   
@@ -263,30 +276,30 @@ void march(in vec3 e, in vec3 s, out vec3 colour) {
         continue;
       }
 
+      // inner loop, ray from position toward sun 
       float transmittanceLight = 1.0;
       float tLight = 0.0;
-
       for(int j = 0; j < MAX_STEPS_LIGHT; j++) {
         vec3 pLight = p + tLight * SUN;
-
         float densityLight = clamp(octaves(pLight + animationIndex * WIND), 0, 1);
 
-        transmittanceLight *= exp(-densityLight * extinctionCoeff * STEP_SIZE_LIGHT * 1.5);
+        transmittanceLight *= exp(-densityLight * extinctionCoeff * STEP_SIZE_LIGHT * 1.5); // beer-lambert
 
-        // early exist
+        // early exit
         if(transmittanceLight < 0.05) break;
 
         tLight += STEP_SIZE_LIGHT;
       }
 
+      // phase function
       float phase = henyeyGreenstien(dot(rayDir, SUN));
 
-      vec3 ambient = sky * 0.7;
-      vec3 scattered = (sunColour * transmittanceLight * phase * 6.0) + ambient;
+      vec3 ambient = sky * 0.7; // blend sky colour
+      vec3 scattered = ((sunColour * transmittanceLight * phase * 6.0) + ambient) * scatteringCoeff;
 
-      colour += transmittance * scatteringCoeff * density * scattered * STEP_SIZE;
+      colour += transmittance * density * scattered * STEP_SIZE;
 
-      transmittance *= exp(-extinctionCoeff * density * STEP_SIZE * 1.5);
+      transmittance *= exp(-density * extinctionCoeff * STEP_SIZE * 1.5); // beer-lambert
 
       // early exit
       if(transmittance < 0.01) break;
